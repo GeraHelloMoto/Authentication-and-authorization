@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔐 Тест Аутентификации</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .container { border: 1px solid #ddd; padding: 20px; border-radius: 10px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .token { word-break: break-all; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Тест системы аутентификации</h1>
+
+        <!-- Форма регистрации -->
+        <div class="form-group">
+            <h3>📝 Регистрация</h3>
+            <input type="text" id="regName" placeholder="Имя">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Пароль">
+            <button onclick="register()">Зарегистрироваться</button>
+        </div>
+
+        <!-- Форма входа -->
+        <div class="form-group">
+            <h3>🚪 Вход</h3>
+            <input type="email" id="loginEmail" placeholder="Email" value="admin@mail.ru">
+            <input type="password" id="loginPassword" placeholder="Пароль" value="admin123">
+            <button onclick="login()">Войти</button>
+        </div>
+
+        <!-- Обновление профиля и удаление аккаунта -->
+<div class="form-group">
+    <h3>⚙️ Управление аккаунтом</h3>
+    <input type="text" id="updateName" placeholder="Новое имя">
+    <input type="email" id="updateEmail" placeholder="Новый email">
+    <button onclick="updateProfile()">Обновить профиль</button>
+    <button onclick="deleteAccount()" style="background: #dc3545;">Удалить аккаунт</button>
+</div>
+
+        <!-- Тестирование API -->
+        <div class="form-group">
+            <h3>🧪 Тест API</h3>
+            <button onclick="getProfile()">Показать профиль</button>
+            <button onclick="getProducts()">Показать товары</button>
+            <button onclick="getUsers()">Показать пользователей (только админ)</button>
+        </div>
+
+        <!-- Результаты -->
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let currentToken = '';
+
+        function showResult(message, type = 'info') {
+            document.getElementById('result').innerHTML =
+                `<div class="result ${type}">${message}</div>`;
+        }
+
+        async function register() {
+            const data = {
+                name: document.getElementById('regName').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value
+            };
+
+            try {
+                const response = await fetch('/api/register/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                showResult(
+                    `📝 Статус: ${response.status}<br>` +
+                    `Ответ: ${JSON.stringify(result)}`,
+                    response.status === 200 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error}`, 'error');
+            }
+        }
+
+        async function login() {
+            const data = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value
+            };
+
+            try {
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.status === 200) {
+                    currentToken = result.token;
+                    showResult(
+                        `✅ Успешный вход!<br>` +
+                        `👤 Пользователь: ${result.user.name}<br>` +
+                        `📧 Email: ${result.user.email}<br>` +
+                        `🔑 Токен: <div class="token">${currentToken}</div>`,
+                        'success'
+                    );
+                } else {
+                    showResult(
+                        `❌ Ошибка входа: ${result.error}<br>` +
+                        `Статус: ${response.status}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error}`, 'error');
+            }
+        }
+
+        async function getProfile() {
+            if (!currentToken) {
+                showResult('❌ Сначала войдите в систему!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/profile/', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                const result = await response.json();
+                showResult(
+                    `👤 Профиль:<br>` +
+                    `Статус: ${response.status}<br>` +
+                    `Данные: ${JSON.stringify(result)}`,
+                    response.status === 200 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error}`, 'error');
+            }
+        }
+
+        async function getProducts() {
+            if (!currentToken) {
+                showResult('❌ Сначала войдите в систему!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/products/', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                const result = await response.json();
+                showResult(
+                    `📦 Товары:<br>` +
+                    `Статус: ${response.status}<br>` +
+                    `Данные: ${JSON.stringify(result)}`,
+                    response.status === 200 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error}`, 'error');
+            }
+        }
+
+        async function getUsers() {
+            if (!currentToken) {
+                showResult('❌ Сначала войдите в систему!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users/', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                const result = await response.json();
+                showResult(
+                    `👥 Пользователи:<br>` +
+                    `Статус: ${response.status}<br>` +
+                    `Данные: ${JSON.stringify(result)}`,
+                    response.status === 200 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error}`, 'error');
+            }
+        }
+
+    async function updateProfile() {
+    if (!currentToken) {
+        showResult('❌ Сначала войдите в систему!', 'error');
+        return;
+    }
+
+    const data = {
+        name: document.getElementById('updateName').value,
+        email: document.getElementById('updateEmail').value
+    };
+
+    // Убираем пустые поля
+    if (!data.name) delete data.name;
+    if (!data.email) delete data.email;
+
+    if (Object.keys(data).length === 0) {
+        showResult('❌ Введите новые данные для обновления', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/profile/update/', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        showResult(
+            `⚙️ Обновление профиля:<br>` +
+            `Статус: ${response.status}<br>` +
+            `Ответ: ${JSON.stringify(result)}`,
+            response.status === 200 ? 'success' : 'error'
+        );
+
+        // Очищаем поля после успешного обновления
+        if (response.status === 200) {
+            document.getElementById('updateName').value = '';
+            document.getElementById('updateEmail').value = '';
+        }
+    } catch (error) {
+        showResult(`❌ Ошибка: ${error}`, 'error');
+    }
+}
+
+async function deleteAccount() {
+    if (!currentToken) {
+        showResult('❌ Сначала войдите в систему!', 'error');
+        return;
+    }
+
+    if (!confirm('❌ Вы уверены что хотите удалить аккаунт? Это действие нельзя отменить!')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/profile/delete/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`
+            }
+        });
+
+        const result = await response.json();
+        showResult(
+            `🗑️ Удаление аккаунта:<br>` +
+            `Статус: ${response.status}<br>` +
+            `Ответ: ${JSON.stringify(result)}`,
+            response.status === 200 ? 'success' : 'error'
+        );
+
+        // После удаления очищаем токен
+        if (response.status === 200) {
+            currentToken = '';
+        }
+    } catch (error) {
+        showResult(`❌ Ошибка: ${error}`, 'error');
+    }
+}
+    </script>
+</body>
+</html>
